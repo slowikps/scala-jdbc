@@ -3,17 +3,23 @@ package config
 import cats.effect.IO
 import doobie.util.transactor.Transactor
 import org.testcontainers.containers.PostgreSQLContainer
+import org.flywaydb.core.Flyway
 
 object PostgresqlDocker {
 
-  val xa = {
-    postgres.start()
+  lazy val xa =
     Transactor.fromDriverManager[IO]("org.postgresql.Driver",
                                      postgres.getJdbcUrl,
                                      postgres.getUsername,
                                      postgres.getPassword)
-  }
 
-  private val postgres: PostgreSQLContainer[Nothing] =
-    new PostgreSQLContainer()
+  private val postgres: PostgreSQLContainer[Nothing] = new PostgreSQLContainer()
+
+  def start() = {
+    postgres.start()
+    val flyway = new Flyway
+
+    flyway.setDataSource(postgres.getJdbcUrl, postgres.getUsername, postgres.getPassword)
+    flyway.migrate()
+  }
 }
