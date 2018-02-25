@@ -22,4 +22,6 @@ object PostgresqlDocker {
     flyway.setDataSource(postgres.getJdbcUrl, postgres.getUsername, postgres.getPassword)
     flyway.migrate()
   }
+
+  def connectionData() = s"jdbcUrl: ${postgres.getJdbcUrl}, username: ${postgres.getUsername}, password: ${postgres.getPassword}"
 }
