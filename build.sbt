@@ -2,7 +2,7 @@ name := "scala-jdbc"
 
 version := "0.1"
 
-scalaVersion := "2.12.3"
+scalaVersion := "2.12.4"
 
 val DoobieVersion = "0.5.0"
 val EffVersion = "5.0.0"
@@ -26,3 +26,5 @@ libraryDependencies ++= Seq(
 ) ++ doobieDependencies
 
 addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.6")
+
+scalacOptions += "-Ypartial-unification"

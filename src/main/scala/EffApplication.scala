@@ -1,3 +1,4 @@
+import cats.data.Writer
 import cats.effect.IO
 import doobie.free.connection.ConnectionIO
 import doobie.util.transactor.Transactor
@@ -30,7 +31,7 @@ object EffApplication extends App {
     Transactor.fromDriverManager[IO]("org.postgresql.Driver", s"jdbc:postgresql://localhost:$port/test", "test", "test")
 
 
-//  type Stack = Fx.fx3[ConnectionIO, IO, Writer[RollbackAction, ?]]
+  type StackWithWriter = Fx.fx3[ConnectionIO, IO, Writer[RollbackAction, ?]]
   type Stack = Fx.fx2[ConnectionIO, IO]
 
   private val booksRepository  = new BooksRepository
