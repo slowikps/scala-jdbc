@@ -4,6 +4,8 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
+import io.circe.{Json, JsonObject}
+
 case class Book(id: UUID,
                 name: String,
                 author: UUID,
@@ -14,7 +16,7 @@ case class Author(id: UUID,
                 name: String,
                 surname: String)
 
-
+case class AuthorAudit(id: Int, authorId: UUID, createdBy: String, createdAt: Instant, data: Json)
 
 
 object MariuszWolny extends Author(UUID.randomUUID(), "Mariusz", "Wolny") {

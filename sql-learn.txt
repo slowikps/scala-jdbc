@@ -1,0 +1,70 @@
+Interesting stuff: 
+1) Group sets - for groupoing by 
+2) Window - collecting data per partion or frame (part of the window when order by used)
+
+
+SELECT DISTINCT ON(author_id) * FROM author_audit WHERE author_id = 'ae59bb08-6efc-4f48-94ca-00516345f6c7' ORDER BY author_id, created_at DESC LIMIT 10
+
+
+SELECT * FROM author_audit WHERE id= (SELECT MAX(id) FROM author_audit WHERE author_id = '477ee393-8828-4fd9-9537-93f79ad4c74a')
+
+
+CREATE INDEX some_idx_2 ON author_audit (id, author_id);
+CREATE INDEX some_idx_3 ON author_audit (created_at DESC);
+
+
+
+CREATE OR REPLACE VIEW full_latest_audit 
+AS SELECT * FROM author_audit WHERE id in (SELECT max(id) FROM author_audit GROUP BY author_id);
+
+CREATE OR REPLACE VIEW id_latest_audit 
+AS SELECT author_id, max(id) as id FROM author_audit GROUP BY author_id;
+
+On view:
+	SELECT * FROM full_latest_audit WHERE author_id = '4d641084-5e59-4870-82d9-1c26cac1b09f';
+No view/no group:
+	SELECT * FROM author_audit WHERE id= (SELECT MAX(id) FROM author_audit WHERE author_id = '4d641084-5e59-4870-82d9-1c26cac1b09f') 
+No view/no group where outside:
+	SELECT * FROM author_audit WHERE id= (SELECT MAX(id) FROM author_audit) and author_id = '4d641084-5e59-4870-82d9-1c26cac1b09f'
+No view/no group where in both:
+	SELECT * FROM author_audit WHERE id= (SELECT MAX(id) FROM author_audit WHERE author_id = '4d641084-5e59-4870-82d9-1c26cac1b09f') and author_id = '4d641084-5e59-4870-82d9-1c26cac1b09f'
+
+
+Join with author: 
+	EXPLAIN ANALYZE SELECT * FROM author a JOIN author_audit aa ON a.id = aa.author_id WHERE aa.id in (SELECT max(id) FROM author_audit GROUP BY author_id);
+	EXPLAIN ANALYZE SELECT * FROM author_audit aa JOIN author a ON a.id = aa.author_id WHERE aa.id in (SELECT max(id) FROM author_audit GROUP BY author_id);
+	EXPLAIN ANALYZE SELECT * FROM author_audit aa, author a WHERE a.id = aa.author_id and aa.id in (SELECT max(id) FROM author_audit GROUP BY author_id);
+With view - just id: 
+	EXPLAIN ANALYZE SELECT * FROM author a JOIN author_audit aa ON a.id = aa.author_id WHERE aa.id in (SELECT id FROM id_latest_audit);
+With view full: 
+	EXPLAIN ANALYZE SELECT * FROM author a JOIN full_latest_audit fla ON a.id = fla.author_id;
+
+With where: 
+	EXPLAIN ANALYZE SELECT * FROM author a JOIN author_audit aa ON a.id = aa.author_id WHERE aa.id in (SELECT max(id) FROM author_audit WHERE author_id = '09a668ea-0a6a-4e69-bd98-8e595ac1161f' GROUP BY author_id) and author_id = '09a668ea-0a6a-4e69-bd98-8e595ac1161f';
+	EXPLAIN ANALYZE SELECT * FROM author a JOIN author_audit aa ON a.id = aa.author_id WHERE aa.id in (SELECT id FROM id_latest_audit WHERE author_id = '09a668ea-0a6a-4e69-bd98-8e595ac1161f');
+	EXPLAIN ANALYZE SELECT * FROM author a JOIN full_latest_audit fla ON a.id = fla.author_id WHERE author_id = '09a668ea-0a6a-4e69-bd98-8e595ac1161f';
+
+Brand Service eq: 
+	EXPLAIN ANALYZE 
+	SELECT a.id, a.name, a.surname, aa.id, aa.author_id, aa.created_by, aa.created_at, aa.data
+	FROM author a LEFT JOIN (SELECT author_id, MAX(id) MaxId FROM author_audit GROUP BY author_id) MaxDates ON a.id = MaxDates.author_id
+	LEFT JOIN author_audit aa ON MaxDates.author_id = aa.author_id AND MaxDates.MaxId = aa.id
+
+Distinct ON - najwolniejsze!
+	SELECT a.id, a.name, a.surname, aa.id, aa.author_id, aa.created_by, aa.created_at, aa.data
+	FROM author a JOIN (SELECT DISTINCT ON(aa.author_id) aa.id, aa.author_id, aa.created_by, aa.created_at, aa.data FROM author_audit aa ORDER BY aa.author_id, id DESC) aa on a.id = aa.author_id
+	
+
+
+
+JOIN author_audit aa ON a.id = aa.author_id WHERE aa.id in (SELECT max(id) FROM author_audit WHERE author_id = '09a668ea-0a6a-4e69-bd98-8e595ac1161f' GROUP BY author_id) and author_id = '09a668ea-0a6a-4e69-bd98-8e595ac1161f';
+
+
+SELECT * FROM author_audit WHERE id in (SELECT max(id) FROM author_audit WHERE author_id = '4d641084-5e59-4870-82d9-1c26cac1b09f' GROUP BY author_id)
+
+
+
+Not greate with function: 
+CREATE OR REPLACE FUNCTION lates_audit_id(author uuid) RETURNS integer 
+AS $$ SELECT max(id) FROM author_audit WHERE author_id = author; $$
+LANGUAGE SQL;
